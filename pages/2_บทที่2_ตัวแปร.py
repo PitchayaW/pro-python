@@ -8,7 +8,7 @@ if "student_id" not in st.session_state:
     st.warning("กรุณาเข้าสู่ระบบที่หน้าแรกก่อน")
     st.stop()
 
-render_progress_sidebar()
+render_progress_sidebar(lesson_id="lesson02", total_exercises=9)
 
 st.title("บทที่ 2: ตัวแปรและ Data Type")
 

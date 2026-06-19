@@ -33,8 +33,28 @@ def render_exercise(
     timeout: ค่า default 5 วินาทีพอสำหรับโค้ดทั่วไป แต่ exercise ที่ import pandas/numpy
     ควรตั้งสูงขึ้น (เช่น 10-15) เพราะการ import library หนักในแต่ละ subprocess ใหม่
     กินเวลามากกว่าโค้ดเปล่า ๆ โดยเฉพาะเมื่อมีคนใช้พร้อมกันหลายคนบน server ที่ resource จำกัด
+
+    ถ้านักศึกษาเคยทำข้อนี้ผ่านมาก่อน (เช็คจาก Google Sheet ผ่าน get_student_progress)
+    จะแสดง badge "ผ่านแล้ว" และดึงโค้ดที่ส่งตรวจครั้งล่าสุดมาเป็นค่าเริ่มต้นใน editor
+    แทน starter_code เปล่า ๆ — ช่วยให้กลับมาทำต่อได้โดยไม่ต้องเริ่มใหม่จากศูนย์
     """
-    st.subheader(title)
+    student_id = st.session_state.get("student_id")
+    previous_status = None
+    previous_code = None
+    if student_id:
+        progress = get_student_progress(student_id)
+        entry = progress.get(exercise_id)
+        if entry:
+            previous_status = entry.get("status")
+            previous_code = entry.get("code")
+
+    header_col1, header_col2 = st.columns([5, 1])
+    with header_col1:
+        st.subheader(title)
+    with header_col2:
+        if previous_status == "passed":
+            st.success("✅ ผ่านแล้ว")
+
     st.markdown(instructions)
 
     if hint:
@@ -42,8 +62,19 @@ def render_exercise(
             st.markdown(hint)
 
     editor_key = f"editor_{lesson_id}_{exercise_id}"
+    # ลำดับความสำคัญของค่าเริ่มต้นใน editor:
+    # 1) ค่าที่อยู่ใน session_state อยู่แล้ว (กำลังพิมพ์อยู่ในเซสชันนี้ ไม่อยากให้ถูกเขียนทับ)
+    # 2) โค้ดที่ส่งตรวจไว้ล่าสุดจาก Google Sheet (ถ้าเคยทำมาก่อนในเซสชันอื่น/อุปกรณ์อื่น)
+    # 3) starter_code เปล่า (ยังไม่เคยทำข้อนี้มาก่อน)
+    if editor_key in st.session_state:
+        default_code = st.session_state[editor_key]
+    elif previous_code:
+        default_code = previous_code
+    else:
+        default_code = starter_code
+
     code = st_ace(
-        value=st.session_state.get(editor_key, starter_code),
+        value=default_code,
         language="python",
         theme="github",
         key=editor_key,
@@ -72,7 +103,6 @@ def render_exercise(
                 st.error(result["error"])
 
     if check_clicked:
-        student_id = st.session_state.get("student_id")
         student_name = st.session_state.get("student_name")
 
         if not student_id:
@@ -92,7 +122,7 @@ def render_exercise(
                     st.error(outcome["message"])
 
             record_attempt(student_id, student_name, lesson_id, exercise_id,
-                            outcome["passed"])
+                            outcome["passed"], code=code)
             get_student_progress.clear()  # เคลียร์ cache ให้เห็น progress ล่าสุด
 
 
@@ -117,8 +147,14 @@ def render_student_login():
                 st.rerun()
 
 
-def render_progress_sidebar():
-    """แสดงความก้าวหน้าของนักศึกษาคนปัจจุบันที่ sidebar"""
+def render_progress_sidebar(lesson_id: str = None, total_exercises: int = None):
+    """
+    แสดงความก้าวหน้าของนักศึกษาคนปัจจุบันที่ sidebar
+
+    lesson_id, total_exercises: ถ้าระบุทั้งสองค่า จะแสดงสรุปเพิ่มเติมว่าทำผ่านไปแล้ว
+    กี่ข้อจากทั้งหมดกี่ข้อ "ในบทที่เปิดอยู่ขณะนี้" (เช่น "บทนี้: 5/9 ข้อ")
+    เรียกจากแต่ละไฟล์บทเรียนโดยส่ง lesson_id ของบทนั้นและจำนวนข้อทั้งหมดในบทมาด้วย
+    """
     student_id = st.session_state.get("student_id")
     if not student_id:
         return
@@ -128,10 +164,18 @@ def render_progress_sidebar():
     st.sidebar.markdown(f"**รหัส:** {student_id}")
 
     progress = get_student_progress(student_id)
-    passed_count = sum(1 for status in progress.values() if status == "passed")
+    passed_count = sum(1 for entry in progress.values() if entry.get("status") == "passed")
 
     if progress:
-        st.sidebar.markdown(f"**ผ่านแล้ว:** {passed_count} แบบฝึกหัด")
+        st.sidebar.markdown(f"**ผ่านแล้วทั้งคอร์ส:** {passed_count} แบบฝึกหัด")
+
+    if lesson_id and total_exercises:
+        passed_in_lesson = sum(
+            1 for entry in progress.values()
+            if entry.get("status") == "passed" and entry.get("lesson_id") == lesson_id
+        )
+        st.sidebar.markdown(f"**บทนี้:** {passed_in_lesson}/{total_exercises} ข้อ")
+        st.sidebar.progress(passed_in_lesson / total_exercises if total_exercises else 0)
 
     if st.sidebar.button("ออกจากระบบ"):
         for key in ("student_id", "student_name"):

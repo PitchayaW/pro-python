@@ -34,16 +34,17 @@ def _get_worksheet():
     except Exception:
         ws = sh.add_worksheet(title="progress", rows=1000, cols=10)
         ws.append_row(["timestamp", "student_id", "student_name", "lesson_id",
-                        "exercise_id", "status", "attempts"])
+                        "exercise_id", "status", "attempts", "code"])
 
     return ws
 
 
 def record_attempt(student_id: str, student_name: str, lesson_id: str,
-                    exercise_id: str, passed: bool):
+                    exercise_id: str, passed: bool, code: str = ""):
     """
     บันทึกการพยายามทำ exercise 1 ครั้งลง Google Sheet
     เก็บทุก attempt (ไม่ overwrite) เพื่อดูพัฒนาการได้ ส่วนหน้าสรุปจะกรองเอาแถวล่าสุดของแต่ละคน/exercise
+    เก็บโค้ดที่ส่งตรวจไว้ด้วย เพื่อใช้แสดงกลับให้นักศึกษาเห็นโค้ดเดิมตอนกลับมาทำต่อ
     """
     try:
         ws = _get_worksheet()
@@ -55,6 +56,7 @@ def record_attempt(student_id: str, student_name: str, lesson_id: str,
             exercise_id,
             "passed" if passed else "failed",
             1,
+            code,
         ])
     except Exception as e:
         # ไม่ให้แอป crash ถ้า Google Sheet มีปัญหา (เช่น เน็ตหลุด) แค่แจ้งเตือนเบา ๆ
@@ -65,7 +67,8 @@ def record_attempt(student_id: str, student_name: str, lesson_id: str,
 def get_student_progress(student_id: str) -> dict:
     """
     ดึงความก้าวหน้าของนักศึกษาคนหนึ่ง คืนค่าเป็น
-    {exercise_id: "passed"/"failed"} โดยใช้ attempt ล่าสุดของแต่ละ exercise
+    {exercise_id: {"status": "passed"/"failed", "code": "...", "lesson_id": "..."}}
+    โดยใช้ attempt ล่าสุดของแต่ละ exercise (แถวท้ายสุดที่เจอในชีตของ exercise นั้น)
     """
     try:
         ws = _get_worksheet()
@@ -77,7 +80,11 @@ def get_student_progress(student_id: str) -> dict:
     for row in records:
         if str(row.get("student_id")) == str(student_id):
             ex_id = row.get("exercise_id")
-            progress[ex_id] = row.get("status")
+            progress[ex_id] = {
+                "status": row.get("status"),
+                "code": row.get("code", ""),
+                "lesson_id": row.get("lesson_id", ""),
+            }
     return progress
 
 
