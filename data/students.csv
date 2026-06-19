@@ -1,0 +1,21 @@
+student_id,name,major,year,math_score,python_score,attendance_rate
+1,สมชาย,Computer Science,2,78,85,92
+2,สมหญิง,Statistics,3,92,88,98
+3,วิชัย,Computer Science,1,65,70,75
+4,ดารณี,Data Science,2,88,95,90
+5,ปรีชา,Statistics,4,55,60,68
+6,วิภา,Computer Science,3,73,80,85
+7,ธนพล,Data Science,1,90,92,95
+8,กมลา,Statistics,2,,75,80
+9,ประพันธ์,Computer Science,4,68,72,70
+10,สุดา,Data Science,3,95,98,99
+11,อนันต์,Statistics,1,60,,65
+12,รัตนา,Computer Science,2,82,88,89
+13,เกียรติ,Data Science,4,77,80,85
+14,มาลี,Statistics,3,85,82,91
+15,สมศักดิ์,Computer Science,1,58,65,60
+16,พรทิพย์,Data Science,2,91,94,96
+17,ชัยวัฒน์,Statistics,4,70,,78
+18,นิภา,Computer Science,3,86,90,93
+19,สมพงษ์,Data Science,1,63,68,72
+20,อรุณี,Statistics,2,79,83,87
