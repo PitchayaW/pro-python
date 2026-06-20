@@ -21,8 +21,8 @@ LESSONS = [
     {"id": "lesson11", "no": 11, "title": "จัดการและแสดงผลข้อมูล", "desc": "clean, groupby, visualization เบื้องต้น"},
 ]
 
-st.title("🐍 เรียนไพธอนแบบอินเทอร์แอกทีฟ")
-st.caption("คอร์สเตรียมพื้นฐาน Python สำหรับ Data Science — เขียนโค้ดจริง รันจริง เห็นผลทันที")
+st.title("🐍 Learn Python Programming")
+st.caption("เตรียมพื้นฐาน Python — เขียนโค้ดจริง รันจริง เห็นผลทันที")
 
 if "student_id" not in st.session_state:
     render_student_login()

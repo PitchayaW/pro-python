@@ -7,7 +7,7 @@ pages/ folder อัตโนมัติแบบเดิมของ Streamli
 import streamlit as st
 
 st.set_page_config(
-    page_title="เรียนไพธอนแบบอินเทอร์แอกทีฟ",
+    page_title="Learn Python Programming",
     page_icon="🐍",
     layout="wide",
 )
