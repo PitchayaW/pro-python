@@ -8,7 +8,7 @@ if "student_id" not in st.session_state:
     st.warning("กรุณาเข้าสู่ระบบที่หน้าแรกก่อน")
     st.stop()
 
-render_progress_sidebar(lesson_id="lesson02", total_exercises=9)
+render_progress_sidebar(lesson_id="lesson02", total_exercises=11)
 
 st.title("บทที่ 2: ตัวแปรและ Data Type")
 
@@ -41,6 +41,67 @@ age = 25
 print(type(age))  # <class 'int'>
 ```
 
+### การคำนวณ (Arithmetic Operators)
+
+ไพธอนมีเครื่องหมายคำนวณพื้นฐานให้ใช้ ดังนี้
+
+| Operator | ความหมาย | ตัวอย่าง | ผลลัพธ์ |
+|---|---|---|---|
+| `+` | บวก | `5 + 3` | `8` |
+| `-` | ลบ | `5 - 3` | `2` |
+| `*` | คูณ | `5 * 3` | `15` |
+| `/` | หาร (ได้ผลเป็นทศนิยมเสมอ) | `7 / 2` | `3.5` |
+| `**` | ยกกำลัง | `2 ** 3` | `8` |
+| `//` | หารปัดเศษทิ้ง (floor division) | `7 // 2` | `3` |
+| `%` | หารเอาเศษ (modulo) | `7 % 2` | `1` |
+
+`%` ใช้บ่อยมากในการตรวจสอบว่าหารลงตัวหรือไม่ (เศษเป็น 0 แปลว่าหารลงตัว) เช่นตรวจสอบ
+เลขคู่/เลขคี่ ส่วน `//` ใช้เมื่อต้องการผลหารเป็นจำนวนเต็มโดยตัดทศนิยมทิ้ง
+
+```python
+print(10 % 3)    # 1   — 10 หาร 3 เหลือเศษ 1
+print(10 // 3)    # 3   — 10 หาร 3 ได้ผลหารเต็ม 3 (ตัดเศษทิ้ง)
+```
+
+### ลำดับการคำนวณ (Operator Precedence)
+
+เมื่อมีหลาย operator ผสมกันในนิพจน์เดียว ไพธอนคำนวณตามลำดับความสำคัญ
+**วงเล็บ `()` → ยกกำลัง `**` → คูณ/หาร/หารเอาเศษ `* / // %` → บวก/ลบ `+ -`**
+(เหมือนหลักการ "คูณหารก่อนบวกลบ" ที่เคยเรียนในวิชาคณิตศาสตร์)
+ถ้า operator มีลำดับความสำคัญเท่ากัน จะคำนวณจากซ้ายไปขวา
+
+```python
+print(2 + 3 * 4)        # 14  — คูณก่อน (3*4=12) แล้วค่อยบวก (2+12=14)
+print((2 + 3) * 4)       # 20  — วงเล็บก่อนเสมอ (2+3=5) แล้วค่อยคูณ (5*4=20)
+print(2 ** 3 + 1)         # 9   — ยกกำลังก่อน (2**3=8) แล้วค่อยบวก (8+1=9)
+print(10 - 4 / 2)          # 8.0 — หารก่อน (4/2=2.0) แล้วค่อยลบ (10-2.0=8.0)
+```
+
+**คำแนะนำ:** ถ้าไม่แน่ใจเรื่องลำดับ หรืออยากให้โค้ดอ่านง่ายชัดเจน ใส่วงเล็บครอบส่วนที่
+ต้องการคำนวณก่อนได้เสมอ ไม่ผิดอะไรและช่วยลดข้อผิดพลาดจากการคำนวณผิดลำดับ
+
+### Compound Assignment Operators — ย่อการอัปเดตตัวแปร
+
+เวลาต้องการอัปเดตค่าตัวแปรโดยใช้ค่าเดิมของมันเอง (เช่น `score = score + 10`) ไพธอนมี
+เครื่องหมายย่อให้เขียนสั้นลงได้ ทำงานแบบเดียวกันแต่กระชับกว่า
+
+| เขียนแบบย่อ | เทียบเท่ากับ |
+|---|---|
+| `x += 5` | `x = x + 5` |
+| `x -= 5` | `x = x - 5` |
+| `x *= 5` | `x = x * 5` |
+| `x /= 5` | `x = x / 5` |
+| `x **= 2` | `x = x ** 2` |
+| `x //= 2` | `x = x // 2` |
+| `x %= 2` | `x = x % 2` |
+
+```python
+score = 10
+score += 5      # score กลายเป็น 15
+score *= 2       # score กลายเป็น 30
+print(score)      # 30
+```
+
 ### การแปลงประเภทข้อมูล (Type Casting)
 
 ```python
@@ -63,7 +124,7 @@ print(f"ชื่อ {name} อายุ {age} ปี")   # ได้: ชื่
 
 st.markdown("---")
 st.markdown("## 📝 แบบฝึกหัด")
-st.caption("ข้อ 1-2 ทำตามตัวอย่างให้ครบ | ข้อ 3-6 เติมโค้ดในจุดที่ขาด | ข้อ 7-9 เขียนเองทั้งหมด")
+st.caption("ข้อ 1-2 ทำตามตัวอย่างให้ครบ | ข้อ 3-8 เติมโค้ดในจุดที่ขาด | ข้อ 9-11 เขียนเองทั้งหมด")
 
 # ============================================================
 # ข้อ 1-2: ทำซ้ำเต็มจากตัวอย่าง
@@ -120,18 +181,58 @@ render_exercise(
 )
 
 # ============================================================
-# ข้อ 3-6: fill-in-the-blank
+# ข้อ 3-8: fill-in-the-blank
 # ============================================================
 
 st.markdown("---")
-st.markdown("### ข้อ 3: เติมโค้ดให้สมบูรณ์ — แปลงข้อความเป็นตัวเลข")
+st.markdown("### ข้อ 3: เติมโค้ดให้สมบูรณ์ — ลำดับการคำนวณ")
+st.markdown("""
+เติมโค้ดให้คำนวณนิพจน์ตามลำดับการคำนวณที่เรียนไป โดยไม่ใส่วงเล็บเพิ่ม
+(สังเกตว่าผลลัพธ์จะต่างจากการบวกแล้วคูณตามลำดับซ้ายไปขวาธรรมดา)
+""")
+
+render_exercise(
+    lesson_id="lesson02", exercise_id="ex3_fill_precedence",
+    title="", instructions="",
+    starter_code=(
+        '# TODO: คำนวณ 3 บวกกับ (4 คูณ 5) โดยใช้ลำดับการคำนวณปกติ ไม่ใส่วงเล็บเพิ่ม\n'
+        'result = 3 \n'
+        'print(result)\n'
+    ),
+    check_type="exact",
+    expected_output="23",
+    hint="เติมเครื่องหมาย + 4 * 5 ต่อจาก 3 — เครื่องหมายคูณจะถูกคำนวณก่อนบวกเสมอตามลำดับที่เรียนไป",
+)
+
+st.markdown("---")
+st.markdown("### ข้อ 4: เติมโค้ดให้สมบูรณ์ — modulo ตรวจสอบเลขคู่/คี่")
+st.markdown("""
+เติมโค้ดให้ใช้ `%` ตรวจสอบว่าตัวเลขเป็นเลขคู่หรือไม่ (หารด้วย 2 ลงตัว)
+""")
+
+render_exercise(
+    lesson_id="lesson02", exercise_id="ex4_fill_modulo",
+    title="", instructions="",
+    starter_code=(
+        'number = 18\n'
+        '# TODO: หาเศษจากการหาร number ด้วย 2 เก็บในตัวแปร remainder\n'
+        'remainder = \n'
+        'print(remainder)\n'
+    ),
+    check_type="exact",
+    expected_output="0",
+    hint="ใช้เครื่องหมาย % หาเศษจากการหาร number % 2 — ถ้าเป็นเลขคู่ เศษจะเป็น 0 เสมอ",
+)
+
+st.markdown("---")
+st.markdown("### ข้อ 5: เติมโค้ดให้สมบูรณ์ — แปลงข้อความเป็นตัวเลข")
 st.markdown("""
 มีตัวแปร `price_text` เก็บราคาเป็น string อยู่ ต้องแปลงเป็น `int` ก่อนนำไปคำนวณ
 เติมโค้ดในจุดที่มี `# TODO` ให้ครบ
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex3_fill_casting",
+    lesson_id="lesson02", exercise_id="ex5_fill_casting",
     title="", instructions="",
     starter_code=(
         'price_text = "150"\n'
@@ -146,13 +247,13 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 4: เติมโค้ดให้สมบูรณ์ — คำนวณราคารวม")
+st.markdown("### ข้อ 6: เติมโค้ดให้สมบูรณ์ — คำนวณราคารวม")
 st.markdown("""
 เติมโค้ดให้คำนวณราคารวม (`total`) จากราคาต่อหน่วยกับจำนวนที่ซื้อ แล้วแสดงผลด้วย f-string
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex4_fill_total",
+    lesson_id="lesson02", exercise_id="ex6_fill_total",
     title="", instructions="",
     starter_code=(
         'price_per_item = 25.5\n'
@@ -167,14 +268,14 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 5: เติมโค้ดให้สมบูรณ์ — ตรวจสอบ type ด้วย if")
+st.markdown("### ข้อ 7: เติมโค้ดให้สมบูรณ์ — ตรวจสอบ type ด้วย if")
 st.markdown("""
 เติมเงื่อนไขให้ตรวจสอบว่าตัวแปร `value` เป็น `str` หรือไม่ ถ้าเป็น string ให้พิมพ์ "เป็นข้อความ"
 ถ้าไม่ใช่ให้พิมพ์ "ไม่ใช่ข้อความ"
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex5_fill_typecheck",
+    lesson_id="lesson02", exercise_id="ex7_fill_typecheck",
     title="", instructions="",
     starter_code=(
         'value = "สวัสดี"\n'
@@ -190,18 +291,18 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 6: เติมโค้ดให้สมบูรณ์ — อัปเดตค่าตัวแปร")
+st.markdown("### ข้อ 8: เติมโค้ดให้สมบูรณ์ — อัปเดตค่าตัวแปรด้วย compound assignment")
 st.markdown("""
-ตัวแปรเก็บคะแนนเริ่มต้นที่ 0 ต้องการเพิ่มคะแนน 10 แต้ม 3 ครั้ง (เขียนคำสั่งเพิ่มคะแนน 3 บรรทัด)
-แล้วแสดงคะแนนสุดท้าย
+ตัวแปรเก็บคะแนนเริ่มต้นที่ 0 ต้องการเพิ่มคะแนน 10 แต้ม 3 ครั้ง โดยใช้ `+=` ที่เรียนไป
+(เขียนคำสั่งเพิ่มคะแนน 3 บรรทัด) แล้วแสดงคะแนนสุดท้าย
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex6_fill_update",
+    lesson_id="lesson02", exercise_id="ex8_fill_update",
     title="", instructions="",
     starter_code=(
         'score = 0\n'
-        '# TODO: เพิ่มคะแนนทีละ 10 แต้ม จำนวน 3 ครั้ง (เขียน score = score + 10 ซ้ำ 3 บรรทัด)\n'
+        '# TODO: เพิ่มคะแนนทีละ 10 แต้ม จำนวน 3 ครั้ง โดยใช้ += (เขียน score += 10 ซ้ำ 3 บรรทัด)\n'
         '\n'
         '\n'
         '\n'
@@ -209,15 +310,16 @@ render_exercise(
     ),
     check_type="exact",
     expected_output="คะแนนสุดท้าย: 30",
-    hint="การเพิ่มค่าตัวแปรทำได้โดยเอาค่าเดิมมาบวกแล้วเก็บกลับที่ตัวแปรเดิม (score = score + ...) ทำซ้ำกัน 3 ครั้ง",
+    hint="ใช้ compound assignment ที่เรียนไป score += 10 ซึ่งเทียบเท่ากับ score = score + 10 "
+         "เขียนซ้ำกัน 3 บรรทัด",
 )
 
 # ============================================================
-# ข้อ 7-9: เขียนเองทั้งหมด
+# ข้อ 9-11: เขียนเองทั้งหมด
 # ============================================================
 
 st.markdown("---")
-st.markdown("### ข้อ 7: เขียนเอง — ฟังก์ชันตรวจสอบประเภทข้อมูล")
+st.markdown("### ข้อ 9: เขียนเอง — ฟังก์ชันตรวจสอบประเภทข้อมูล")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `describe_type(value)` ที่รับค่าเข้ามา 1 ค่า
 แล้ว return ชื่อประเภทข้อมูลเป็น string ตามนี้:
@@ -228,7 +330,7 @@ st.markdown("""
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex7_write_describetype",
+    lesson_id="lesson02", exercise_id="ex9_write_describetype",
     title="", instructions="",
     starter_code="def describe_type(value):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
@@ -244,7 +346,7 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 8: เขียนเอง — คำนวณ BMI")
+st.markdown("### ข้อ 10: เขียนเอง — คำนวณ BMI")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `calculate_bmi(weight_kg, height_cm)` รับน้ำหนัก (กิโลกรัม) และส่วนสูง (เซนติเมตร)
 แล้ว return ค่า BMI (ทศนิยม) ตามสูตร:
@@ -258,7 +360,7 @@ BMI = น้ำหนัก(kg) / (ส่วนสูง(m))^2
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex8_write_bmi",
+    lesson_id="lesson02", exercise_id="ex10_write_bmi",
     title="", instructions="",
     starter_code="def calculate_bmi(weight_kg, height_cm):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
@@ -272,7 +374,7 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 9: เขียนเอง — ฟังก์ชันแปลงอุณหภูมิ")
+st.markdown("### ข้อ 11: เขียนเอง — ฟังก์ชันแปลงอุณหภูมิ")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `celsius_to_fahrenheit(celsius)` รับอุณหภูมิเป็นองศาเซลเซียส
 แล้ว return อุณหภูมิเป็นองศาฟาเรนไฮต์ ตามสูตร:
@@ -285,7 +387,7 @@ F = C × 9/5 + 32
 """)
 
 render_exercise(
-    lesson_id="lesson02", exercise_id="ex9_write_temperature",
+    lesson_id="lesson02", exercise_id="ex11_write_temperature",
     title="", instructions="",
     starter_code="def celsius_to_fahrenheit(celsius):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",

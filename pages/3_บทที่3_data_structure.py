@@ -7,7 +7,7 @@ if "student_id" not in st.session_state:
     st.warning("กรุณาเข้าสู่ระบบที่หน้าแรกก่อน")
     st.stop()
 
-render_progress_sidebar(lesson_id="lesson03", total_exercises=11)
+render_progress_sidebar(lesson_id="lesson03", total_exercises=13)
 
 st.title("บทที่ 3: Data Structure")
 
@@ -22,6 +22,46 @@ print(fruits[0])        # แอปเปิ้ล
 print(len(fruits))      # 3 (จำนวนสมาชิก)
 fruits.append("มะม่วง")  # เพิ่มสมาชิกใหม่ต่อท้าย
 print(fruits)            # ['แอปเปิ้ล', 'กล้วย', 'ส้ม', 'มะม่วง']
+```
+
+### String คือ List ของ Character
+
+ที่จริงแล้ว string ในไพธอนมีพฤติกรรมคล้าย list มาก — เข้าถึงตัวอักษรแต่ละตัวผ่าน index
+ได้เหมือนกัน และ slicing ก็ใช้ได้เหมือนกันทุกประการ เพราะ string คือลำดับ (sequence)
+ของตัวอักษรเรียงต่อกัน
+
+```python
+text = "Python"
+print(text[0])        # P     — ตัวอักษรแรก (index 0)
+print(text[-1])         # n     — ตัวอักษรสุดท้าย (index ลบ นับจากท้าย)
+print(text[1:4])         # yth   — slicing เหมือน list (index 1 ถึง 3)
+print(len(text))          # 6     — ความยาว (จำนวนตัวอักษร)
+```
+
+**ข้อแตกต่างสำคัญจาก list:** string เป็น **immutable** (แก้ไขไม่ได้) ในขณะที่ list
+แก้ไขสมาชิกได้โดยตรง ถ้าพยายามแก้ไขตัวอักษรใน string ตรง ๆ จะเกิด error
+
+```python
+text = "hello"
+text[0] = "H"   # TypeError: 'str' object does not support item assignment
+
+# ถ้าอยากเปลี่ยนตัวอักษร ต้องสร้าง string ใหม่ทั้งสาย เช่น
+new_text = "H" + text[1:]
+print(new_text)   # Hello
+```
+
+วนลูปไล่ตัวอักษรทีละตัวใน string ทำได้เหมือนวนลูปใน list
+
+```python
+for char in "abc":
+    print(char)   # พิมพ์ a, b, c ทีละบรรทัด
+```
+
+slicing แบบ `[::-1]` ใช้กลับลำดับ string ได้สะดวก (เทคนิคเดียวกับที่ใช้กลับลำดับ list)
+
+```python
+text = "hello"
+print(text[::-1])   # olleh
 ```
 
 ### Tuple — เหมือน list แต่แก้ไขไม่ได้
@@ -78,7 +118,7 @@ for row in scores:
 
 st.markdown("---")
 st.markdown("## 📝 แบบฝึกหัด")
-st.caption("ข้อ 1-2 ทำตามตัวอย่างให้ครบ | ข้อ 3-7 เติมโค้ดในจุดที่ขาด | ข้อ 8-11 เขียนเองทั้งหมด")
+st.caption("ข้อ 1-2 ทำตามตัวอย่างให้ครบ | ข้อ 3-9 เติมโค้ดในจุดที่ขาด | ข้อ 10-13 เขียนเองทั้งหมด")
 
 # ============================================================
 # ข้อ 1-2: ทำซ้ำเต็มจากตัวอย่าง
@@ -134,7 +174,7 @@ render_exercise(
 )
 
 # ============================================================
-# ข้อ 3-7: fill-in-the-blank
+# ข้อ 3-9: fill-in-the-blank
 # ============================================================
 
 st.markdown("---")
@@ -158,13 +198,58 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 4: เติมโค้ดให้สมบูรณ์ — เข้าถึงค่าใน Dictionary")
+st.markdown("### ข้อ 4: เติมโค้ดให้สมบูรณ์ — index และ slicing ใน String")
+st.markdown("""
+เติมโค้ดให้ดึงตัวอักษรตัวแรกและ 3 ตัวอักษรสุดท้ายของคำ ด้วย indexing/slicing
+ที่เรียนไปในเนื้อหา (string ทำงานเหมือน list ทุกประการในเรื่องนี้)
+""")
+
+render_exercise(
+    lesson_id="lesson03", exercise_id="ex4_fill_stringindex",
+    title="", instructions="",
+    starter_code=(
+        'word = "Khonkaen"\n'
+        '# TODO: ดึงตัวอักษรแรกของ word เก็บในตัวแปร first_char\n'
+        'first_char = \n'
+        '# TODO: ดึง 3 ตัวอักษรสุดท้ายของ word เก็บในตัวแปร last_three\n'
+        'last_three = \n'
+        'print(first_char)\n'
+        'print(last_three)\n'
+    ),
+    check_type="exact",
+    expected_output="K\naen",
+    hint="ตัวอักษรแรกใช้ word[0] เหมือน list ส่วน 3 ตัวสุดท้ายใช้ slicing word[-3:] "
+         "(เริ่มจาก index ที่ -3 ไปจนสุด ไม่ต้องระบุ stop)",
+)
+
+st.markdown("---")
+st.markdown("### ข้อ 5: เติมโค้ดให้สมบูรณ์ — กลับลำดับ String")
+st.markdown("""
+เติมโค้ดให้กลับลำดับ string ด้วย slicing แบบ `[::-1]` ที่เรียนไปในเนื้อหา
+""")
+
+render_exercise(
+    lesson_id="lesson03", exercise_id="ex5_fill_stringreverse",
+    title="", instructions="",
+    starter_code=(
+        'text = "khonkaen"\n'
+        '# TODO: กลับลำดับ text ด้วย slicing เก็บในตัวแปร reversed_text\n'
+        'reversed_text = \n'
+        'print(reversed_text)\n'
+    ),
+    check_type="exact",
+    expected_output="neaknohk",
+    hint="ใช้ text[::-1] ตามที่เรียนไปในเนื้อหา — slice แบบนี้ไล่จากตัวสุดท้ายมาตัวแรก",
+)
+
+st.markdown("---")
+st.markdown("### ข้อ 6: เติมโค้ดให้สมบูรณ์ — เข้าถึงค่าใน Dictionary")
 st.markdown("""
 เติมโค้ดให้ดึงค่า `"score"` จาก dictionary แล้วแสดงผลด้วย f-string
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex4_fill_dict_access",
+    lesson_id="lesson03", exercise_id="ex6_fill_dict_access",
     title="", instructions="",
     starter_code=(
         'student = {"name": "ดารณี", "score": 88}\n'
@@ -178,13 +263,13 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 5: เติมโค้ดให้สมบูรณ์ — slicing List")
+st.markdown("### ข้อ 7: เติมโค้ดให้สมบูรณ์ — slicing List")
 st.markdown("""
 เติมโค้ดให้ดึงสมาชิก 3 ตัวแรกของ list ด้วยวิธี slicing (`list[start:stop]`)
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex5_fill_slicing",
+    lesson_id="lesson03", exercise_id="ex7_fill_slicing",
     title="", instructions="",
     starter_code=(
         'numbers = [10, 20, 30, 40, 50]\n'
@@ -199,14 +284,14 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 6: เติมโค้ดให้สมบูรณ์ — ตัดตัวซ้ำด้วย Set")
+st.markdown("### ข้อ 8: เติมโค้ดให้สมบูรณ์ — ตัดตัวซ้ำด้วย Set")
 st.markdown("""
 มี list ของเลขที่มีค่าซ้ำกันอยู่ เติมโค้ดให้แปลงเป็น set เพื่อตัดตัวซ้ำออก
 แล้วแปลงกลับเป็น list ที่เรียงลำดับแล้ว (`sorted()`)
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex6_fill_set",
+    lesson_id="lesson03", exercise_id="ex8_fill_set",
     title="", instructions="",
     starter_code=(
         'numbers = [3, 1, 2, 3, 1, 4, 2, 5]\n'
@@ -221,14 +306,14 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 7: เติมโค้ดให้สมบูรณ์ — เข้าถึงค่าใน 2D List")
+st.markdown("### ข้อ 9: เติมโค้ดให้สมบูรณ์ — เข้าถึงค่าใน 2D List")
 st.markdown("""
 มีตารางคะแนน (2D list) เก็บคะแนนนักศึกษา 3 คน วิชาเดียว เติมโค้ดให้ดึงคะแนนของ
 **นักศึกษาคนที่ 1** (index 1 ซึ่งคือคนที่สองในตาราง เพราะนับจาก 0) ออกมาแสดง
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex7_fill_2dlist",
+    lesson_id="lesson03", exercise_id="ex9_fill_2dlist",
     title="", instructions="",
     starter_code=(
         'scores = [\n'
@@ -247,18 +332,18 @@ render_exercise(
 )
 
 # ============================================================
-# ข้อ 8-11: เขียนเองทั้งหมด
+# ข้อ 10-13: เขียนเองทั้งหมด
 # ============================================================
 
 st.markdown("---")
-st.markdown("### ข้อ 8: เขียนเอง — หาผลรวมใน List")
+st.markdown("### ข้อ 10: เขียนเอง — หาผลรวมใน List")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `sum_list(numbers)` รับ list ของตัวเลข แล้ว return ผลรวมของสมาชิกทั้งหมด
 (ห้ามใช้ฟังก์ชัน `sum()` สำเร็จรูป ให้ลองเขียนด้วยการวนลูปหรือบวกค่าทีละตัวเอง)
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex8_write_sumlist",
+    lesson_id="lesson03", exercise_id="ex10_write_sumlist",
     title="", instructions="",
     starter_code="def sum_list(numbers):\n    # เขียนโค้ดของคุณที่นี่ (ลองใช้ for loop บวกค่าสะสม)\n    pass\n",
     check_type="function",
@@ -274,7 +359,7 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 9: เขียนเอง — นับความถี่คำในรายการ")
+st.markdown("### ข้อ 11: เขียนเอง — นับความถี่คำในรายการ")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `count_items(items)` รับ list ของ string แล้ว return dictionary
 ที่มี key เป็นชื่อสมาชิกแต่ละตัว และ value เป็นจำนวนครั้งที่ปรากฏใน list นั้น
@@ -284,7 +369,7 @@ st.markdown("""
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex9_write_countitems",
+    lesson_id="lesson03", exercise_id="ex11_write_countitems",
     title="", instructions="",
     starter_code="def count_items(items):\n    # เขียนโค้ดของคุณที่นี่ (ลองสร้าง dict ว่าง แล้ววนลูปนับ)\n    pass\n",
     check_type="function",
@@ -299,32 +384,32 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 10: เขียนเอง — หาค่าที่มากที่สุดและน้อยที่สุด")
+st.markdown("### ข้อ 12: เขียนเอง — ตรวจสอบ Palindrome ด้วย String Slicing")
 st.markdown("""
-เขียนฟังก์ชันชื่อ `min_max(numbers)` รับ list ของตัวเลข แล้ว return **tuple** ที่มี 2 ค่า
-คือ (ค่าน้อยที่สุด, ค่ามากที่สุด) ตามลำดับ
+เขียนฟังก์ชันชื่อ `is_palindrome_word(text)` รับ string แล้ว return `True` ถ้าข้อความนั้น
+อ่านจากหน้าไปหลังกับหลังไปหน้าเหมือนกัน (palindrome) และ `False` ถ้าไม่เหมือน
 
-(ห้ามใช้ฟังก์ชัน `min()`/`max()` สำเร็จรูป ให้ลองวนลูปเทียบค่าทีละตัวเอง)
+**แนวทาง:** ใช้เทคนิคกลับลำดับ string ด้วย slicing ที่เรียนไปในเนื้อหา แล้วเทียบกับ
+string เดิมว่าเหมือนกันหรือไม่ (ไม่ต้องวนลูปเทียบทีละตัวอักษรเอง slicing ทำให้สั้นกว่ามาก)
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex10_write_minmax",
+    lesson_id="lesson03", exercise_id="ex12_write_palindromeslice",
     title="", instructions="",
-    starter_code="def min_max(numbers):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
+    starter_code="def is_palindrome_word(text):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
-    function_name="min_max",
+    function_name="is_palindrome_word",
     test_cases=[
-        {"args": ([3, 1, 4, 1, 5, 9, 2, 6],), "expected": [1, 9], "label": "list หลายค่า"},
-        {"args": ([7],), "expected": [7, 7], "label": "list ตัวเดียว"},
-        {"args": ([-5, 0, 5],), "expected": [-5, 5], "label": "มีค่าลบ"},
+        {"args": ("level",), "expected": True, "label": "level เป็น palindrome"},
+        {"args": ("hello",), "expected": False, "label": "hello ไม่เป็น palindrome"},
+        {"args": ("racecar",), "expected": True, "label": "racecar เป็น palindrome"},
+        {"args": ("a",), "expected": True, "label": "ตัวอักษรเดียวเป็น palindrome เสมอ"},
     ],
-    hint="ตั้งตัวแปรเก็บค่าน้อยสุดและมากสุดเริ่มต้นด้วยสมาชิกตัวแรกของ list ก่อน "
-         "แล้ววนลูปไล่ทุกตัว เทียบว่าค่านี้น้อยกว่าตัวที่เก็บไว้ไหม (ถ้าน้อยกว่าให้อัปเดต) "
-         "และเทียบว่ามากกว่าตัวที่เก็บไว้ไหม (ถ้ามากกว่าให้อัปเดต) สุดท้าย return ทั้งสองค่าเป็น tuple",
+    hint="ใช้ text[::-1] กลับลำดับ string แล้วเทียบกับ text เดิมด้วย == ถ้าเหมือนกัน return True ไม่เหมือน return False",
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 11: เขียนเอง — ผลรวมแต่ละแถวใน 2D List")
+st.markdown("### ข้อ 13: เขียนเอง — ผลรวมแต่ละแถวใน 2D List")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `row_sums(matrix)` รับ 2D list (matrix) แล้ว return list ของผลรวม
 แต่ละแถว
@@ -334,7 +419,7 @@ st.markdown("""
 """)
 
 render_exercise(
-    lesson_id="lesson03", exercise_id="ex11_write_rowsums",
+    lesson_id="lesson03", exercise_id="ex13_write_rowsums",
     title="", instructions="",
     starter_code="def row_sums(matrix):\n    # เขียนโค้ดของคุณที่นี่ (ลองวนลูปนอกไล่ทีละแถว แล้ววนลูปในหรือใช้ sum() หาผลรวมของแถวนั้น)\n    pass\n",
     check_type="function",

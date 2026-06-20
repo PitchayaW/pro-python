@@ -7,7 +7,7 @@ if "student_id" not in st.session_state:
     st.warning("กรุณาเข้าสู่ระบบที่หน้าแรกก่อน")
     st.stop()
 
-render_progress_sidebar(lesson_id="lesson05", total_exercises=11)
+render_progress_sidebar(lesson_id="lesson05", total_exercises=14)
 
 st.title("บทที่ 5: Loops (การวนซ้ำ)")
 
@@ -72,11 +72,78 @@ for i in range(3):
     for j in range(2):
         print(f"i={i}, j={j}")
 ```
+
+### List Comprehension — สร้าง list ใหม่แบบกระชับในบรรทัดเดียว
+
+list comprehension เป็นวิธีเขียน for loop ที่สร้าง list ใหม่ ให้กระชับกว่าการเขียน
+loop แบบเต็มหลายบรรทัด รูปแบบคือ `[นิพจน์ for ตัวแปร in ของที่จะวนลูป]`
+
+```python
+numbers = [1, 2, 3, 4]
+
+# แบบ loop เต็ม
+squared = []
+for x in numbers:
+    squared.append(x ** 2)
+
+# แบบ list comprehension (ทำงานเหมือนกันทุกประการ แต่สั้นกว่า)
+squared = [x ** 2 for x in numbers]
+print(squared)   # [1, 4, 9, 16]
+```
+
+เพิ่มเงื่อนไขกรองสมาชิกได้ด้วย `if` ต่อท้าย รูปแบบคือ
+`[นิพจน์ for ตัวแปร in ของที่จะวนลูป if เงื่อนไข]`
+
+```python
+numbers = [1, 2, 3, 4, 5, 6]
+evens = [x for x in numbers if x % 2 == 0]
+print(evens)   # [2, 4, 6]
+```
+
+**ข้อแนะนำ:** list comprehension เหมาะกับ logic สั้น ๆ บรรทัดเดียว ถ้า logic ซับซ้อน
+หลายขั้นตอน การเขียน for loop แบบเต็มจะอ่านง่ายกว่า ไม่มีกฎตายตัวว่าต้องใช้แบบไหน
+ขึ้นอยู่กับว่าอ่านแล้วเข้าใจง่ายที่สุด
+
+### enumerate — วนลูปพร้อมรู้ตำแหน่ง index
+
+ปกติการวนลูปแบบ `for item in list` จะไม่รู้ตำแหน่ง index ของสมาชิกที่กำลังวนถึง
+ถ้าต้องการรู้ทั้ง index และค่าไปพร้อมกัน ใช้ `enumerate()` ครอบ list ที่จะวนลูป
+
+```python
+fruits = ["แอปเปิ้ล", "กล้วย", "ส้ม"]
+for index, fruit in enumerate(fruits):
+    print(index, fruit)
+# พิมพ์: 0 แอปเปิ้ล / 1 กล้วย / 2 ส้ม
+```
+
+กำหนดจุดเริ่มต้นของ index ได้ด้วย `start` (ปกติเริ่มที่ 0)
+
+```python
+for index, fruit in enumerate(fruits, start=1):
+    print(index, fruit)
+# พิมพ์: 1 แอปเปิ้ล / 2 กล้วย / 3 ส้ม
+```
+
+### zip — วนลูปหลาย list พร้อมกัน
+
+`zip()` ใช้รวม list หลายตัวเข้าด้วยกัน วนลูปแบบจับคู่ตำแหน่งเดียวกันของแต่ละ list
+
+```python
+names = ["สมชาย", "สมหญิง", "วิชัย"]
+scores = [85, 92, 78]
+
+for name, score in zip(names, scores):
+    print(f"{name}: {score}")
+# พิมพ์: สมชาย: 85 / สมหญิง: 92 / วิชัย: 78
+```
+
+ถ้า list มีความยาวไม่เท่ากัน `zip()` จะวนลูปแค่เท่าจำนวนสมาชิกของ list ที่สั้นที่สุด
+(ส่วนที่เกินมาของ list อื่นจะถูกตัดทิ้งโดยไม่ error)
 """)
 
 st.markdown("---")
 st.markdown("## 📝 แบบฝึกหัด")
-st.caption("ข้อ 1-2 ทำตามตัวอย่างให้ครบ | ข้อ 3-7 เติมโค้ดในจุดที่ขาด | ข้อ 8-11 เขียนเองทั้งหมด")
+st.caption("ข้อ 1-2 ทำตามตัวอย่างให้ครบ | ข้อ 3-10 เติมโค้ดในจุดที่ขาด | ข้อ 11-14 เขียนเองทั้งหมด")
 
 # ============================================================
 # ข้อ 1-2: ทำซ้ำเต็มจากตัวอย่าง
@@ -247,12 +314,77 @@ render_exercise(
          'จากนั้น print() เปล่าด้านนอกลูปในจะขึ้นบรรทัดใหม่ให้',
 )
 
+st.markdown("---")
+st.markdown("### ข้อ 8: เติมโค้ดให้สมบูรณ์ — List Comprehension")
+st.markdown("""
+เติมโค้ดให้สร้าง list ใหม่ที่มีค่าเป็นกำลังสองของแต่ละตัวเลข ด้วย list comprehension
+(ไม่ต้องเขียน for loop แบบเต็ม)
+""")
+
+render_exercise(
+    lesson_id="lesson05", exercise_id="ex8_fill_listcomp",
+    title="", instructions="",
+    starter_code=(
+        'numbers = [1, 2, 3, 4, 5]\n'
+        '# TODO: สร้าง list comprehension หากำลังสองของแต่ละตัว เก็บในตัวแปร squared\n'
+        'squared = \n'
+        'print(squared)\n'
+    ),
+    check_type="exact",
+    expected_output="[1, 4, 9, 16, 25]",
+    hint="รูปแบบ list comprehension คือ [นิพจน์ for ตัวแปร in list] เขียนเป็น [x ** 2 for x in numbers]",
+)
+
+st.markdown("---")
+st.markdown("### ข้อ 9: เติมโค้ดให้สมบูรณ์ — List Comprehension พร้อมเงื่อนไข")
+st.markdown("""
+เติมโค้ดให้สร้าง list ใหม่ที่มีเฉพาะตัวเลขที่มากกว่า 10 ด้วย list comprehension
+ที่มีเงื่อนไข `if` ต่อท้าย
+""")
+
+render_exercise(
+    lesson_id="lesson05", exercise_id="ex9_fill_listcompfilter",
+    title="", instructions="",
+    starter_code=(
+        'numbers = [5, 15, 8, 20, 3, 12]\n'
+        '# TODO: สร้าง list comprehension คัดเฉพาะตัวเลขที่มากกว่า 10 เก็บในตัวแปร big_numbers\n'
+        'big_numbers = \n'
+        'print(big_numbers)\n'
+    ),
+    check_type="exact",
+    expected_output="[15, 20, 12]",
+    hint="รูปแบบคือ [x for x in numbers if เงื่อนไข] เขียนเป็น [x for x in numbers if x > 10]",
+)
+
+st.markdown("---")
+st.markdown("### ข้อ 10: เติมโค้ดให้สมบูรณ์ — enumerate และ zip")
+st.markdown("""
+เติมโค้ดให้วนลูปแสดงตำแหน่ง (เริ่มที่ 1) คู่กับชื่อนักศึกษาและคะแนน โดยใช้ `enumerate`
+ร่วมกับ `zip` ที่เรียนไปในเนื้อหา
+""")
+
+render_exercise(
+    lesson_id="lesson05", exercise_id="ex10_fill_enumeratezip",
+    title="", instructions="",
+    starter_code=(
+        'names = ["สมชาย", "สมหญิง", "วิชัย"]\n'
+        'scores = [85, 92, 78]\n'
+        '# TODO: วนลูปด้วย enumerate(zip(names, scores), start=1) แล้ว unpack เป็น rank, (name, score)\n'
+        '\n'
+        '    print(f"อันดับ {rank}: {name} ได้ {score} คะแนน")\n'
+    ),
+    check_type="exact",
+    expected_output="อันดับ 1: สมชาย ได้ 85 คะแนน\nอันดับ 2: สมหญิง ได้ 92 คะแนน\nอันดับ 3: วิชัย ได้ 78 คะแนน",
+    hint="เขียน for rank, (name, score) in enumerate(zip(names, scores), start=1): "
+         "— zip รวม names กับ scores เข้าด้วยกันก่อน แล้ว enumerate ครอบอีกชั้นเพื่อนับลำดับ",
+)
+
 # ============================================================
-# ข้อ 8-11: เขียนเองทั้งหมด
+# ข้อ 11-14: เขียนเองทั้งหมด
 # ============================================================
 
 st.markdown("---")
-st.markdown("### ข้อ 8: เขียนเอง — ตรวจสอบจำนวนเฉพาะ")
+st.markdown("### ข้อ 11: เขียนเอง — ตรวจสอบจำนวนเฉพาะ")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `is_prime(n)` รับจำนวนเต็มบวก แล้ว return `True` ถ้าเป็นจำนวนเฉพาะ
 (prime number — หารด้วย 1 และตัวเองเท่านั้น) และ `False` ถ้าไม่ใช่
@@ -261,7 +393,7 @@ st.markdown("""
 """)
 
 render_exercise(
-    lesson_id="lesson05", exercise_id="ex8_write_isprime",
+    lesson_id="lesson05", exercise_id="ex11_write_isprime",
     title="", instructions="",
     starter_code="def is_prime(n):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
@@ -278,7 +410,7 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 9: เขียนเอง — กลับลำดับ List")
+st.markdown("### ข้อ 12: เขียนเอง — กลับลำดับ List")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `reverse_list(items)` รับ list แล้ว return list ใหม่ที่มีสมาชิก
 เรียงลำดับกลับด้านจากเดิม (ห้ามใช้ `.reverse()` หรือ `list[::-1]` หรือ `reversed()` สำเร็จรูป
@@ -286,7 +418,7 @@ st.markdown("""
 """)
 
 render_exercise(
-    lesson_id="lesson05", exercise_id="ex9_write_reverselist",
+    lesson_id="lesson05", exercise_id="ex12_write_reverselist",
     title="", instructions="",
     starter_code="def reverse_list(items):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
@@ -303,7 +435,7 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 10: เขียนเอง — หาตัวหารร่วมมาก (GCD)")
+st.markdown("### ข้อ 13: เขียนเอง — หาตัวหารร่วมมาก (GCD)")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `find_gcd(a, b)` รับจำนวนเต็มบวก 2 ตัว แล้ว return ตัวหารร่วมมาก (GCD)
 ของทั้งสองตัว
@@ -314,7 +446,7 @@ st.markdown("""
 """)
 
 render_exercise(
-    lesson_id="lesson05", exercise_id="ex10_write_gcd",
+    lesson_id="lesson05", exercise_id="ex13_write_gcd",
     title="", instructions="",
     starter_code="def find_gcd(a, b):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
@@ -330,16 +462,18 @@ render_exercise(
 )
 
 st.markdown("---")
-st.markdown("### ข้อ 11: เขียนเอง — สร้างตารางสูตรคูณ")
+st.markdown("### ข้อ 14: เขียนเอง — สร้างตารางสูตรคูณ")
 st.markdown("""
 เขียนฟังก์ชันชื่อ `multiplication_table(n)` รับจำนวนเต็ม `n` แล้ว return list ของผลคูณ
 `n × 1` ถึง `n × 10` ตามลำดับ (เป็น list ของตัวเลข 10 ตัว)
 
 ตัวอย่าง: `multiplication_table(3)` ควร return `[3, 6, 9, 12, 15, 18, 21, 24, 27, 30]`
+
+**ลองท้าทายตัวเอง:** เขียนด้วย list comprehension ในบรรทัดเดียวได้ไหม?
 """)
 
 render_exercise(
-    lesson_id="lesson05", exercise_id="ex11_write_multtable",
+    lesson_id="lesson05", exercise_id="ex14_write_multtable",
     title="", instructions="",
     starter_code="def multiplication_table(n):\n    # เขียนโค้ดของคุณที่นี่\n    pass\n",
     check_type="function",
@@ -350,7 +484,8 @@ render_exercise(
         {"args": (5,), "expected": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50], "label": "สูตรคูณแม่ 5"},
     ],
     hint="สร้าง list ว่างไว้เก็บผลลัพธ์ วนลูปด้วย range ตั้งแต่ 1 ถึง 10 (รวม 10 ด้วย ระวัง range ไม่รวมค่า stop) "
-         "ในแต่ละรอบคำนวณ n คูณกับเลขในรอบนั้น แล้ว append เข้า list ผลลัพธ์",
+         "ในแต่ละรอบคำนวณ n คูณกับเลขในรอบนั้น แล้ว append เข้า list ผลลัพธ์ "
+         "(หรือถ้าอยากลองท้าทาย เขียนเป็น [n * i for i in range(1, 11)] ในบรรทัดเดียวด้วย list comprehension ก็ได้)",
 )
 
 st.markdown("---")
