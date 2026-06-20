@@ -105,10 +105,11 @@ def render_exercise(
                 st.error(result["error"])
 
     if check_clicked:
-        student_name = st.session_state.get("student_name")
+        student_email = st.session_state.get("student_email")
+        student_name = st.session_state.get("student_name", "")
 
         if not student_id:
-            st.warning("กรุณากรอกชื่อ-รหัสนักศึกษาที่หน้าแรกก่อนเริ่มทำแบบฝึกหัด")
+            st.warning("กรุณากรอกรหัสนักศึกษาและอีเมลที่หน้าแรกก่อนเริ่มทำแบบฝึกหัด")
         else:
             with st.spinner("กำลังตรวจคำตอบ..."):
                 if check_type == "exact":
@@ -123,7 +124,7 @@ def render_exercise(
                 else:
                     st.error(outcome["message"])
 
-            record_attempt(student_id, student_name, lesson_id, exercise_id,
+            record_attempt(student_id, student_email, student_name, lesson_id, exercise_id,
                             outcome["passed"], code=code)
             get_student_progress.clear()  # เคลียร์ cache ให้เห็น progress ล่าสุด
 
@@ -134,6 +135,7 @@ def render_student_login():
     เก็บไว้ใน session_state เพื่อใช้ระบุตัวตนตอนบันทึกคะแนน
 
     รูปแบบรหัสนักศึกษาที่รับ: ตัวเลข 9 หลัก ขีด ตัวเลข 1 หลัก เช่น 663020579-1
+    อีเมลต้องเป็นโดเมน @kkumail.com เท่านั้น ส่วนชื่อ-นามสกุลเป็นช่องไม่บังคับ
     """
     st.markdown("### 👋 เริ่มต้นใช้งาน")
     with st.form("login_form"):
@@ -142,20 +144,35 @@ def render_student_login():
             value=st.session_state.get("student_id", ""),
             placeholder="เช่น 663020579-1",
         )
-        student_name = st.text_input("ชื่อ-นามสกุล", value=st.session_state.get("student_name", ""))
+        student_email = st.text_input(
+            "อีเมล KKU",
+            value=st.session_state.get("student_email", ""),
+            placeholder="เช่น somchai.s@kkumail.com",
+        )
+        student_name = st.text_input(
+            "ชื่อ-นามสกุล (ไม่บังคับ)",
+            value=st.session_state.get("student_name", ""),
+        )
         submitted = st.form_submit_button("เข้าสู่บทเรียน", type="primary")
 
         if submitted:
             student_id = student_id.strip()
-            if not student_id or not student_name:
-                st.error("กรุณากรอกทั้งรหัสนักศึกษาและชื่อ-นามสกุล")
+            student_email = student_email.strip()
+            student_name = student_name.strip()
+
+            if not student_id or not student_email:
+                st.error("กรุณากรอกทั้งรหัสนักศึกษาและอีเมล KKU (ชื่อ-นามสกุลไม่บังคับ)")
             elif not re.match(r"^\d{9}-\d$", student_id):
                 st.error("รูปแบบรหัสนักศึกษาไม่ถูกต้อง ต้องเป็นตัวเลข 9 หลัก ขีด ตัวเลข 1 หลัก "
                           "เช่น 663020579-1")
+            elif not re.match(r"^[a-zA-Z0-9._%+-]+@kkumail\.com$", student_email.lower()):
+                st.error("กรุณากรอกอีเมลที่เป็นโดเมน @kkumail.com เท่านั้น เช่น somchai.s@kkumail.com")
             else:
                 st.session_state["student_id"] = student_id
-                st.session_state["student_name"] = student_name.strip()
-                st.success(f"ยินดีต้อนรับ {student_name} 🎉")
+                st.session_state["student_email"] = student_email
+                st.session_state["student_name"] = student_name
+                display_name = student_name if student_name else student_email
+                st.success(f"ยินดีต้อนรับ {display_name} 🎉")
                 st.rerun()
 
 
@@ -172,7 +189,8 @@ def render_progress_sidebar(lesson_id: str = None, total_exercises: int = None):
         return
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**นักศึกษา:** {st.session_state.get('student_name', '')}")
+    display_name = st.session_state.get("student_name") or st.session_state.get("student_email", "")
+    st.sidebar.markdown(f"**นักศึกษา:** {display_name}")
     st.sidebar.markdown(f"**รหัส:** {student_id}")
 
     progress = get_student_progress(student_id)
@@ -190,6 +208,6 @@ def render_progress_sidebar(lesson_id: str = None, total_exercises: int = None):
         st.sidebar.progress(passed_in_lesson / total_exercises if total_exercises else 0)
 
     if st.sidebar.button("ออกจากระบบ"):
-        for key in ("student_id", "student_name"):
+        for key in ("student_id", "student_email", "student_name"):
             st.session_state.pop(key, None)
         st.rerun()
