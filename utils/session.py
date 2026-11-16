@@ -97,8 +97,8 @@ def render_cookie_script():
     if (!m) return;
     var d = JSON.parse(decodeURIComponent(m[1]));
     if (!d.sid || !d.email) return;
+    // Streamlit Cloud รันแอปใน iframe ที่ห้ามเปลี่ยน URL หน้าหลัก จึงโหลด iframe ของแอปเองใหม่
     var w = window;
-    try { if (window.top.location.href) w = window.top; } catch (e) {}
     var u = new URL(w.location.href);
     if (u.searchParams.get("sid")) return;
     u.searchParams.set("sid", d.sid);
