@@ -6,6 +6,7 @@ from utils.ui_components import render_progress_sidebar
 
 if "student_id" not in st.session_state:
     st.warning("กรุณาเข้าสู่ระบบที่หน้าแรกก่อน")
+    st.page_link("pages/intro.py", label="ไปหน้าเข้าสู่ระบบ", icon="🏠")
     st.stop()
 
 render_progress_sidebar()
