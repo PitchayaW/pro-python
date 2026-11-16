@@ -102,6 +102,15 @@ def _get_worksheet():
             raise
         ws = sh.add_worksheet(title="progress", rows=1000, cols=len(HEADER))
         ws.append_row(HEADER, value_input_option="RAW")
+        return ws
+
+    # แก้หัวตารางแบบเก่า (8 คอลัมน์) ให้ตรงกับข้อมูลจริง 9 คอลัมน์ อาจารย์จะได้อ่านชีตถูก
+    try:
+        first = _with_retry(lambda: ws.row_values(1))
+        if first and first[0].strip() == "timestamp" and first[:len(HEADER)] != HEADER:
+            ws.update(range_name="A1:I1", values=[HEADER], value_input_option="RAW")
+    except Exception:  # noqa: BLE001
+        pass   # แก้หัวตารางไม่ได้ก็ไม่เป็นไร การอ่านไม่ได้อิงหัวตารางแล้ว
     return ws
 
 
@@ -144,15 +153,34 @@ def _append_to_shared(rows: list):
             store["rows"].extend([[str(c) for c in r] for r in rows])
 
 
-def _column_index(header_row: list) -> dict:
-    """map ชื่อคอลัมน์ -> ตำแหน่ง (อิงชื่อใน header จริง ถ้าไม่เจอใช้ตำแหน่งมาตรฐาน)"""
-    header = [str(h).strip() for h in header_row]
-    return {name: (header.index(name) if name in header else i) for i, name in enumerate(HEADER)}
+def _parse_row(row: list) -> dict:
+    """
+    แปลง 1 แถวในชีตเป็น dict โดยอิง "ตำแหน่งคอลัมน์" ที่แอปเขียนจริง ไม่อิงหัวตาราง
+    (หัวตารางในชีตเดิมเป็นแบบเก่า 8 คอลัมน์ ทำให้การอ่านตามชื่อหัวตารางเลื่อนไปหนึ่งช่อง
+    และหาสถานะ passed ไม่เจอเลย)
+
+    รองรับ 2 รูปแบบ:
+    - ปัจจุบัน 9 คอลัมน์: timestamp, student_id, student_email, student_name, lesson_id,
+      exercise_id, status, attempts, code
+    - แบบเก่า 8 คอลัมน์ (ไม่มี email): timestamp, student_id, student_name, lesson_id,
+      exercise_id, status, attempts, code
+    """
+    r = [str(c) for c in row] + [""] * (len(HEADER) - len(row))
+    statuses = ("passed", "failed", "draft")
+    if r[6].strip() not in statuses and r[5].strip() in statuses:
+        return {"timestamp": r[0], "student_id": r[1].strip(), "student_email": "",
+                "student_name": r[2], "lesson_id": r[3], "exercise_id": r[4],
+                "status": r[5].strip(), "code": r[7]}
+    return {"timestamp": r[0], "student_id": r[1].strip(), "student_email": r[2],
+            "student_name": r[3], "lesson_id": r[4], "exercise_id": r[5],
+            "status": r[6].strip(), "code": r[8]}
 
 
-def _cell(row: list, idx: dict, name: str) -> str:
-    i = idx[name]
-    return str(row[i]) if i < len(row) else ""
+def _data_rows(rows: list) -> list:
+    """ตัดแถวหัวตารางออก (ถ้ามี) แล้วแปลงทุกแถวเป็น dict"""
+    if rows and str(rows[0][0] if rows[0] else "").strip() == "timestamp":
+        rows = rows[1:]
+    return [_parse_row(r) for r in rows if r]
 
 
 # --------------------------------------------------------------------------- #
@@ -173,7 +201,7 @@ def _apply_row(progress: dict, lesson_id: str, exercise_id: str, status: str, co
     entry["last_status"] = status
     # "status" คงไว้เพื่อความเข้ากันได้กับโค้ดเดิม: passed ถ้าเคยผ่าน ไม่งั้นใช้สถานะล่าสุด
     entry["status"] = "passed" if entry["passed"] else status
-    if code:
+    if code and code.strip() != "None":   # แถวเก่าบางแถวบันทึกโค้ดเป็นคำว่า None
         entry["code"] = code
     if ts:
         entry["ts"] = ts
@@ -181,19 +209,10 @@ def _apply_row(progress: dict, lesson_id: str, exercise_id: str, status: str, co
 
 def _build_progress(rows: list, student_id: str) -> dict:
     progress = {}
-    if not rows:
-        return progress
-    idx = _column_index(rows[0])
     sid = str(student_id).strip()
-    for row in rows[1:]:
-        if _cell(row, idx, "student_id").strip() != sid:
-            continue
-        _apply_row(progress,
-                   _cell(row, idx, "lesson_id"),
-                   _cell(row, idx, "exercise_id"),
-                   _cell(row, idx, "status"),
-                   _cell(row, idx, "code"),
-                   _cell(row, idx, "timestamp"))
+    for d in _data_rows(rows):
+        if d["student_id"] == sid:
+            _apply_row(progress, d["lesson_id"], d["exercise_id"], d["status"], d["code"], d["timestamp"])
     return progress
 
 
@@ -336,26 +355,22 @@ def get_class_summary() -> list:
         rows = _fetch_all_rows()
     except Exception:  # noqa: BLE001
         return []
-    if not rows:
-        return []
-
-    idx = _column_index(rows[0])
     summary = {}
-    for row in rows[1:]:
-        sid = _cell(row, idx, "student_id").strip()
+    for d in _data_rows(rows):
+        sid = d["student_id"]
         if not sid:
             continue
         data = summary.setdefault(sid, {
             "student_id": sid, "student_email": "", "student_name": "",
             "passed_exercises": set(), "total_attempts": 0,
         })
-        data["student_email"] = _cell(row, idx, "student_email") or data["student_email"]
-        data["student_name"] = _cell(row, idx, "student_name") or data["student_name"]
-        status = _cell(row, idx, "status")
+        data["student_email"] = d["student_email"] or data["student_email"]
+        data["student_name"] = d["student_name"] or data["student_name"]
+        status = d["status"]
         if status in ("passed", "failed"):
             data["total_attempts"] += 1
         if status == "passed":
-            data["passed_exercises"].add(_cell(row, idx, "exercise_id"))
+            data["passed_exercises"].add(d["exercise_id"])
 
     result = [{
         "student_id": d["student_id"],
