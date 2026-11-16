@@ -247,7 +247,8 @@ def render_progress_sidebar(lesson_id: str = None, total_exercises: int = None):
             flush_pending(force=True)
             st.rerun()
 
-    sb.caption("💡 บุ๊กมาร์กหน้านี้ไว้ กลับมาเปิดลิงก์เดิมจะเข้าสู่ระบบให้อัตโนมัติ")
+    sb.caption("💡 เบราว์เซอร์นี้จะจำการเข้าสู่ระบบไว้ กลับมาเปิดแอปจะเข้าสู่ระบบให้อัตโนมัติ "
+               "(ถ้าใช้เครื่องส่วนกลาง กดออกจากระบบทุกครั้ง)")
 
     if sb.button("ออกจากระบบ"):
         flush_pending(force=True)
