@@ -88,7 +88,25 @@ def render_cookie_script():
     elif ss.get("_logged_out"):
         js = f'document.cookie = "{COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax; Secure";'
     else:
-        return
+        # ยังไม่ได้ล็อกอิน: Streamlit Cloud ไม่ส่ง cookie ให้ server อ่าน จึงให้เบราว์เซอร์อ่าน cookie เอง
+        # แล้วเปิดหน้าใหม่พร้อม ?sid=...&email=... ซึ่ง restore_login_from_url จะล็อกอินให้
+        js = """
+(function () {
+  try {
+    var m = document.cookie.match(/(?:^|; )%s=([^;]*)/);
+    if (!m) return;
+    var d = JSON.parse(decodeURIComponent(m[1]));
+    if (!d.sid || !d.email) return;
+    var w = window;
+    try { if (window.top.location.href) w = window.top; } catch (e) {}
+    var u = new URL(w.location.href);
+    if (u.searchParams.get("sid")) return;
+    u.searchParams.set("sid", d.sid);
+    u.searchParams.set("email", d.email);
+    if (d.name) u.searchParams.set("name", d.name);
+    w.location.replace(u.toString());
+  } catch (e) {}
+})();""" % COOKIE_NAME
     if ss.get("_cookie_js") == js:
         return    # เขียนไปแล้วในเซสชันนี้
     ss["_cookie_js"] = js
