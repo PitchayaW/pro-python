@@ -3,7 +3,7 @@ Entry point ของแอป: ใช้ st.navigation เพื่อกำห
 sidebar navigation menu เอง ไม่ให้พึ่งชื่อไฟล์
 
 ไฟล์นี้รันทุกครั้งก่อนหน้าบทเรียน จึงใช้เป็นที่:
-- กู้การเข้าสู่ระบบจาก URL (refresh/กลับมาแล้วไม่ต้องล็อกอินใหม่)
+- กู้การเข้าสู่ระบบจาก URL หรือ cookie (refresh/กลับมาแล้วไม่ต้องล็อกอินใหม่)
 - โหลดความคืบหน้าจาก Google Sheet ครั้งเดียวต่อเซสชัน และส่งรายการที่ค้างบันทึก
 - แสดงความคืบหน้าของแต่ละบทในเมนูด้านซ้าย
 """
@@ -12,7 +12,7 @@ import streamlit as st
 
 from utils.lessons import LESSONS, passed_in_lesson
 from utils.progress import get_progress, flush_pending
-from utils.session import restore_login_from_url, sync_login_to_url
+from utils.session import render_cookie_script, restore_login_from_url, sync_login_to_url
 
 st.set_page_config(
     page_title="Learn Python Programming",
@@ -22,6 +22,7 @@ st.set_page_config(
 
 restore_login_from_url()
 sync_login_to_url()
+render_cookie_script()   # จำการล็อกอินไว้ในเบราว์เซอร์ (cookie)
 
 progress = {}
 if "student_id" in st.session_state:

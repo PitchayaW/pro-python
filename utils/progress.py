@@ -16,6 +16,7 @@ Progress tracker: บันทึกคะแนน/ความก้าวห�
 """
 
 import datetime
+import threading
 import time
 
 import streamlit as st
@@ -24,6 +25,7 @@ HEADER = ["timestamp", "student_id", "student_email", "student_name", "lesson_id
           "exercise_id", "status", "attempts", "code"]
 
 RETRY_COOLDOWN_SEC = 20     # เว้นระยะก่อนลองอ่าน/เขียนชีตใหม่หลังล้มเหลว (กันยิง API รัว ๆ)
+CACHE_TTL_SEC = 60          # อายุของสำเนาชีตที่แชร์ร่วมกันทุกเซสชัน
 
 _SS_PROGRESS = "progress"
 _SS_LOADED_FOR = "_progress_loaded_for"
@@ -103,14 +105,43 @@ def _get_worksheet():
     return ws
 
 
-@st.cache_data(ttl=60, show_spinner=False)
-def _fetch_all_rows() -> list:
+@st.cache_resource(show_spinner=False)
+def _shared_store() -> dict:
+    """สำเนาข้อมูลชีตที่แชร์ร่วมกันทุกเซสชัน (อยู่ในหน่วยความจำของ server)"""
+    return {"rows": None, "fetched_at": 0.0, "last_write": 0.0, "lock": threading.Lock()}
+
+
+def _fetch_all_rows(force: bool = False) -> list:
     """
-    อ่านทุกแถวในชีต (cache กลางแชร์ทุกเซสชัน 60 วินาที)
-    ถ้าล้มเหลวจะ raise ออกไป ซึ่ง st.cache_data จะไม่ cache ผลลัพธ์นั้น
+    อ่านทุกแถวในชีต โดยใช้สำเนากลางอายุ CACHE_TTL_SEC วินาที (ทั้งห้องอ่านชีตจริงแค่ครั้งเดียว)
+    ทุกครั้งที่บันทึกสำเร็จ แถวใหม่จะถูกเพิ่มเข้าสำเนากลางด้วย (_append_to_shared)
+    จึงไม่เกิดกรณีล็อกอินใหม่แล้วไม่เห็นข้อที่เพิ่งทำ
+    ถ้าอ่านล้มเหลวจะ raise ออกไป และไม่เก็บผลลัพธ์ว่างไว้
     """
-    ws = _get_worksheet()
-    return _with_retry(ws.get_all_values)
+    store = _shared_store()
+    with store["lock"]:
+        if not force and store["rows"] is not None and time.time() - store["fetched_at"] < CACHE_TTL_SEC:
+            return store["rows"]
+    started = time.time()
+    rows = _with_retry(_get_worksheet().get_all_values)
+    rows = [[str(c) for c in r] for r in rows]
+    with store["lock"]:
+        # ถ้ามีการบันทึกเกิดขึ้นระหว่างที่กำลังอ่าน ข้อมูลที่อ่านมาอาจไม่มีแถวนั้น
+        # ให้คงสำเนาเดิม (ที่ต่อแถวใหม่ไว้แล้ว) และให้อ่านใหม่รอบหน้า
+        if store["last_write"] >= started and store["rows"] is not None:
+            store["fetched_at"] = 0.0
+            return store["rows"]
+        store["rows"] = rows
+        store["fetched_at"] = time.time()
+    return rows
+
+
+def _append_to_shared(rows: list):
+    store = _shared_store()
+    with store["lock"]:
+        store["last_write"] = time.time()
+        if store["rows"] is not None:
+            store["rows"].extend([[str(c) for c in r] for r in rows])
 
 
 def _column_index(header_row: list) -> dict:
@@ -183,9 +214,7 @@ def load_progress(force: bool = False) -> bool:
         return False
 
     try:
-        if force:
-            _fetch_all_rows.clear()
-        rows = _fetch_all_rows()
+        rows = _fetch_all_rows(force=force)
     except Exception as exc:  # noqa: BLE001
         ss[_SS_LOAD_ERROR] = str(exc) or exc.__class__.__name__
         ss[_SS_LOAD_FAILED_AT] = time.time()
@@ -258,6 +287,7 @@ def flush_pending(force: bool = False) -> bool:
         ws = _get_worksheet()
         batch = list(pending)
         _with_retry(lambda: ws.append_rows(batch, value_input_option="RAW"))
+        _append_to_shared(batch)
     except Exception as exc:  # noqa: BLE001
         ss[_SS_FLUSH_ERROR] = str(exc) or exc.__class__.__name__
         ss[_SS_FLUSH_FAILED_AT] = time.time()
