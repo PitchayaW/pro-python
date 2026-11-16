@@ -3,14 +3,17 @@ UI components — ฟังก์ชันกลางสำหรับแส�
 ให้ทุกบทเรียนเรียกใช้ซ้ำได้ ลดโค้ดซ้ำซ้อน
 """
 
-import re
-
 import streamlit as st
 from streamlit_ace import st_ace
 
 from utils.checker import check_exact_output, check_function_with_tests
+from utils.lessons import LESSONS_BY_ID, TOTAL_EXERCISES, passed_in_lesson, passed_total
+from utils.progress import (
+    record_attempt, get_progress, load_progress, flush_pending, progress_status,
+    reset_progress_state,
+)
 from utils.sandbox import run_code
-from utils.progress import record_attempt, get_student_progress
+from utils.session import STUDENT_ID_RE, EMAIL_RE, set_login, clear_login
 
 
 def render_exercise(
@@ -30,32 +33,31 @@ def render_exercise(
     """
     แสดง exercise 1 ข้อ พร้อม code editor, ปุ่มรัน, ปุ่มตรวจคำตอบ, และบันทึก progress
 
-    เรียกใช้จากแต่ละไฟล์บทเรียนได้ตรง ๆ — ไม่ต้องเขียน UI ซ้ำทุกข้อ
-
     timeout: ค่า default 5 วินาทีพอสำหรับโค้ดทั่วไป แต่ exercise ที่ import pandas/numpy
-    ควรตั้งสูงขึ้น (เช่น 10-15) เพราะการ import library หนักในแต่ละ subprocess ใหม่
-    กินเวลามากกว่าโค้ดเปล่า ๆ โดยเฉพาะเมื่อมีคนใช้พร้อมกันหลายคนบน server ที่ resource จำกัด
+    ควรตั้งสูงขึ้น (เช่น 10-15)
 
-    ถ้านักศึกษาเคยทำข้อนี้ผ่านมาก่อน (เช็คจาก Google Sheet ผ่าน get_student_progress)
-    จะแสดง badge "ผ่านแล้ว" และดึงโค้ดที่ส่งตรวจครั้งล่าสุดมาเป็นค่าเริ่มต้นใน editor
-    แทน starter_code เปล่า ๆ — ช่วยให้กลับมาทำต่อได้โดยไม่ต้องเริ่มใหม่จากศูนย์
+    การจำโค้ดของนักศึกษา (ลำดับความสำคัญของค่าเริ่มต้นใน editor):
+    1) โค้ดที่กำลังพิมพ์อยู่ในเซสชันนี้ (_drafts) เก็บแยกจาก widget state เพราะ Streamlit
+       จะลบ widget state ทิ้งเมื่อเปลี่ยนไปหน้าอื่น
+    2) โค้ดล่าสุดที่บันทึกไว้ในชีต (ทั้งตอนกดรันและกดตรวจ) จากเซสชัน/อุปกรณ์อื่น
+    3) starter_code
     """
-    student_id = st.session_state.get("student_id")
-    previous_status = None
-    previous_code = None
-    if student_id:
-        progress = get_student_progress(student_id)
-        entry = progress.get(exercise_id)
-        if entry:
-            previous_status = entry.get("status")
-            previous_code = entry.get("code")
+    ss = st.session_state
+    student_id = ss.get("student_id")
+    progress = get_progress() if student_id else {}
+    entry = progress.get(exercise_id) or {}
+    saved_code = entry.get("code") or ""
 
     header_col1, header_col2 = st.columns([5, 1])
     with header_col1:
         st.subheader(title)
     with header_col2:
-        if previous_status == "passed":
+        if entry.get("passed"):
             st.success("✅ ผ่านแล้ว")
+        elif entry.get("last_status") == "failed":
+            st.warning("🔁 ยังไม่ผ่าน")
+        elif saved_code:
+            st.info("💾 มีโค้ดที่บันทึกไว้")
 
     st.markdown(instructions)
 
@@ -63,20 +65,20 @@ def render_exercise(
         with st.expander("💡 ขอคำใบ้"):
             st.markdown(hint)
 
-    editor_key = f"editor_{lesson_id}_{exercise_id}"
-    # ลำดับความสำคัญของค่าเริ่มต้นใน editor:
-    # 1) ค่าที่อยู่ใน session_state อยู่แล้ว (กำลังพิมพ์อยู่ในเซสชันนี้ ไม่อยากให้ถูกเขียนทับ)
-    # 2) โค้ดที่ส่งตรวจไว้ล่าสุดจาก Google Sheet (ถ้าเคยทำมาก่อนในเซสชันอื่น/อุปกรณ์อื่น)
-    # 3) starter_code เปล่า (ยังไม่เคยทำข้อนี้มาก่อน)
-    if editor_key in st.session_state:
-        default_code = st.session_state[editor_key]
-    elif previous_code:
-        default_code = previous_code
-    else:
-        default_code = starter_code
+    base_key = f"editor_{lesson_id}_{exercise_id}"
+    drafts = ss.setdefault("_drafts", {})
+    inits = ss.setdefault("_editor_init", {})
+    versions = ss.setdefault("_editor_version", {})
+    results = ss.setdefault("_results", {})
+    editor_key = f"{base_key}_v{versions.get(base_key, 0)}"
+
+    # กำหนดค่าเริ่มต้นเฉพาะตอน editor ถูกสร้างใหม่ (ครั้งแรก หรือกลับมาจากหน้าอื่น)
+    # ระหว่างที่ editor ยังแสดงอยู่ ต้องส่งค่าเดิมเสมอ ไม่งั้น editor จะเด้งกลับไปเป็นค่าเก่าขณะพิมพ์
+    if editor_key not in ss or editor_key not in inits:
+        inits[editor_key] = drafts.get(base_key) or saved_code or starter_code
 
     code = st_ace(
-        value=default_code,
+        value=inits[editor_key],
         language="python",
         theme="github",
         key=editor_key,
@@ -84,30 +86,36 @@ def render_exercise(
         font_size=14,
         show_gutter=True,
         wrap=False,
-        auto_update=False,
+        auto_update=True,    # ส่งโค้ดให้ server อัตโนมัติขณะพิมพ์ ไม่ต้องกด Ctrl+Enter/APPLY ก่อน
     )
+    if code is None:
+        code = inits[editor_key]
+    drafts[base_key] = code
 
     col1, col2, col3 = st.columns([1, 1, 3])
     run_clicked = col1.button("▶️ รันโค้ด", key=f"run_{lesson_id}_{exercise_id}")
     check_clicked = col2.button("✅ ตรวจคำตอบ", key=f"check_{lesson_id}_{exercise_id}",
-                                  type="primary")
+                                type="primary")
+    if col3.button("↺ เริ่มใหม่จากโค้ดตั้งต้น", key=f"reset_{lesson_id}_{exercise_id}"):
+        versions[base_key] = versions.get(base_key, 0) + 1
+        drafts[base_key] = starter_code
+        results.pop(base_key, None)
+        st.rerun()
 
-    result_area = st.container()
+    student_email = ss.get("student_email", "")
+    student_name = ss.get("student_name", "")
 
     if run_clicked:
         with st.spinner("กำลังรันโค้ด..."):
             result = run_code(code, timeout=timeout)
-        with result_area:
-            if result["success"]:
-                st.code(result["output"] or "(โค้ดรันสำเร็จ แต่ไม่มีผลลัพธ์ที่ print ออกมา)",
-                         language="text")
-            else:
-                st.error(result["error"])
+        saved = None
+        # บันทึกโค้ดเป็น draft เมื่อกดรัน (เฉพาะเมื่อโค้ดเปลี่ยนจากที่บันทึกไว้) ให้กลับมาทำต่อได้
+        if student_id and code.strip() and code != saved_code and code.strip() != starter_code.strip():
+            saved = record_attempt(student_id, student_email, student_name, lesson_id,
+                                   exercise_id, False, code=code, draft=True)
+        results[base_key] = {"code": code, "kind": "run", "result": result, "saved": saved}
 
     if check_clicked:
-        student_email = st.session_state.get("student_email")
-        student_name = st.session_state.get("student_name", "")
-
         if not student_id:
             st.warning("กรุณากรอกรหัสนักศึกษาและอีเมลที่หน้าแรกก่อนเริ่มทำแบบฝึกหัด")
         else:
@@ -116,28 +124,47 @@ def render_exercise(
                     outcome = check_exact_output(code, expected_output, timeout=timeout)
                 else:
                     outcome = check_function_with_tests(code, function_name, test_cases, timeout=timeout)
+            saved = record_attempt(student_id, student_email, student_name, lesson_id,
+                                   exercise_id, outcome["passed"], code=code)
+            results[base_key] = {"code": code, "kind": "check", "outcome": outcome,
+                                 "saved": saved, "celebrate": outcome["passed"]}
+            # rerun เพื่อให้ badge และแถบความคืบหน้าใน sidebar อัปเดตทันที
+            st.rerun()
 
-            with result_area:
-                if outcome["passed"]:
-                    st.success(outcome["message"])
+    # แสดงผลล่าสุดค้างไว้จนกว่าจะแก้โค้ด (auto_update ทำให้หน้ารันใหม่บ่อย ผลลัพธ์จะได้ไม่หาย)
+    last = results.get(base_key)
+    if last and last["code"] == code:
+        if last["kind"] == "run":
+            r = last["result"]
+            if r["success"]:
+                st.code(r["output"] or "(โค้ดรันสำเร็จ แต่ไม่มีผลลัพธ์ที่ print ออกมา)", language="text")
+            else:
+                st.error(r["error"])
+        else:
+            o = last["outcome"]
+            if o["passed"]:
+                st.success(o["message"])
+                if last.pop("celebrate", False):
                     st.balloons()
-                else:
-                    st.error(outcome["message"])
-
-            record_attempt(student_id, student_email, student_name, lesson_id, exercise_id,
-                            outcome["passed"], code=code)
-            get_student_progress.clear()  # เคลียร์ cache ให้เห็น progress ล่าสุด
+            else:
+                st.error(o["message"])
+        if last.get("saved") is True:
+            st.caption("💾 บันทึกโค้ดแล้ว")
+        elif last.get("saved") is False:
+            st.caption("⏳ ยังบันทึกลงระบบไม่สำเร็จ ระบบจะลองบันทึกให้ใหม่อัตโนมัติ (ทำต่อได้ตามปกติ)")
 
 
 def render_student_login():
     """
     แสดงฟอร์มกรอกชื่อ/รหัสนักศึกษา (เรียกใช้ที่หน้าแรกของแอป)
-    เก็บไว้ใน session_state เพื่อใช้ระบุตัวตนตอนบันทึกคะแนน
+    เก็บไว้ใน session_state และ URL เพื่อให้ refresh/กลับมาแล้วยังล็อกอินอยู่
 
     รูปแบบรหัสนักศึกษาที่รับ: ตัวเลข 9 หลัก ขีด ตัวเลข 1 หลัก เช่น 663020579-1
     อีเมลต้องเป็นโดเมน @kkumail.com เท่านั้น ส่วนชื่อ-นามสกุลเป็นช่องไม่บังคับ
+    ใช้รหัสนักศึกษาเดิมทุกครั้ง ความคืบหน้าที่เคยทำไว้จะกลับมาเอง
     """
     st.markdown("### 👋 เริ่มต้นใช้งาน")
+    st.caption("ใช้รหัสนักศึกษาเดิมทุกครั้ง ระบบจะดึงความคืบหน้าและโค้ดที่เคยทำไว้กลับมาให้อัตโนมัติ")
     with st.form("login_form"):
         student_id = st.text_input(
             "รหัสนักศึกษา",
@@ -162,17 +189,16 @@ def render_student_login():
 
             if not student_id or not student_email:
                 st.error("กรุณากรอกทั้งรหัสนักศึกษาและอีเมล KKU (ชื่อ-นามสกุลไม่บังคับ)")
-            elif not re.match(r"^\d{9}-\d$", student_id):
+            elif not STUDENT_ID_RE.match(student_id):
                 st.error("รูปแบบรหัสนักศึกษาไม่ถูกต้อง ต้องเป็นตัวเลข 9 หลัก ขีด ตัวเลข 1 หลัก "
-                          "เช่น 663020579-1")
-            elif not re.match(r"^[a-zA-Z0-9._%+-]+@kkumail\.com$", student_email.lower()):
+                         "เช่น 663020579-1")
+            elif not EMAIL_RE.match(student_email.lower()):
                 st.error("กรุณากรอกอีเมลที่เป็นโดเมน @kkumail.com เท่านั้น เช่น somchai.s@kkumail.com")
             else:
-                st.session_state["student_id"] = student_id
-                st.session_state["student_email"] = student_email
-                st.session_state["student_name"] = student_name
-                display_name = student_name if student_name else student_email
-                st.success(f"ยินดีต้อนรับ {display_name} 🎉")
+                reset_progress_state()
+                set_login(student_id, student_email, student_name)
+                with st.spinner("กำลังโหลดความคืบหน้า..."):
+                    load_progress(force=True)
                 st.rerun()
 
 
@@ -180,34 +206,53 @@ def render_progress_sidebar(lesson_id: str = None, total_exercises: int = None):
     """
     แสดงความก้าวหน้าของนักศึกษาคนปัจจุบันที่ sidebar
 
-    lesson_id, total_exercises: ถ้าระบุทั้งสองค่า จะแสดงสรุปเพิ่มเติมว่าทำผ่านไปแล้ว
-    กี่ข้อจากทั้งหมดกี่ข้อ "ในบทที่เปิดอยู่ขณะนี้" (เช่น "บทนี้: 5/9 ข้อ")
-    เรียกจากแต่ละไฟล์บทเรียนโดยส่ง lesson_id ของบทนั้นและจำนวนข้อทั้งหมดในบทมาด้วย
+    lesson_id, total_exercises: ถ้าระบุ จะแสดงสรุปว่าทำผ่านไปแล้วกี่ข้อ "ในบทที่เปิดอยู่"
+    (ถ้าไม่ส่ง total_exercises จะใช้ค่าจาก utils/lessons.py)
     """
-    student_id = st.session_state.get("student_id")
+    ss = st.session_state
+    student_id = ss.get("student_id")
     if not student_id:
         return
 
-    st.sidebar.markdown("---")
-    display_name = st.session_state.get("student_name") or st.session_state.get("student_email", "")
-    st.sidebar.markdown(f"**นักศึกษา:** {display_name}")
-    st.sidebar.markdown(f"**รหัส:** {student_id}")
+    progress = get_progress()
+    status = progress_status()
+    sb = st.sidebar
 
-    progress = get_student_progress(student_id)
-    passed_count = sum(1 for entry in progress.values() if entry.get("status") == "passed")
+    sb.markdown("---")
+    display_name = ss.get("student_name") or ss.get("student_email", "")
+    sb.markdown(f"**นักศึกษา:** {display_name}")
+    sb.markdown(f"**รหัส:** {student_id}")
 
-    if progress:
-        st.sidebar.markdown(f"**ผ่านแล้วทั้งคอร์ส:** {passed_count} แบบฝึกหัด")
+    done = passed_total(progress)
+    sb.markdown(f"**ทั้งคอร์ส:** ผ่าน {done}/{TOTAL_EXERCISES} ข้อ")
+    sb.progress(min(done / TOTAL_EXERCISES, 1.0) if TOTAL_EXERCISES else 0.0)
 
-    if lesson_id and total_exercises:
-        passed_in_lesson = sum(
-            1 for entry in progress.values()
-            if entry.get("status") == "passed" and entry.get("lesson_id") == lesson_id
-        )
-        st.sidebar.markdown(f"**บทนี้:** {passed_in_lesson}/{total_exercises} ข้อ")
-        st.sidebar.progress(passed_in_lesson / total_exercises if total_exercises else 0)
+    if lesson_id:
+        total = total_exercises or LESSONS_BY_ID.get(lesson_id, {}).get("total", 0)
+        if total:
+            in_lesson = passed_in_lesson(progress, lesson_id)
+            sb.markdown(f"**บทนี้:** ผ่าน {in_lesson}/{total} ข้อ")
+            sb.progress(min(in_lesson / total, 1.0))
 
-    if st.sidebar.button("ออกจากระบบ"):
-        for key in ("student_id", "student_email", "student_name"):
-            st.session_state.pop(key, None)
+    if status["load_error"] and not status["loaded"]:
+        sb.warning("⚠️ โหลดความคืบหน้าเดิมจากระบบไม่สำเร็จ (อาจมีผู้ใช้พร้อมกันมาก) "
+                   "งานที่ทำตอนนี้ยังถูกบันทึกตามปกติ")
+        if sb.button("🔄 โหลดความคืบหน้าอีกครั้ง"):
+            load_progress(force=True)
+            st.rerun()
+
+    if status["pending"]:
+        sb.info(f"⏳ มี {status['pending']} รายการรอบันทึกลงระบบ จะลองใหม่อัตโนมัติ")
+        if sb.button("💾 บันทึกตอนนี้"):
+            flush_pending(force=True)
+            st.rerun()
+
+    sb.caption("💡 บุ๊กมาร์กหน้านี้ไว้ กลับมาเปิดลิงก์เดิมจะเข้าสู่ระบบให้อัตโนมัติ")
+
+    if sb.button("ออกจากระบบ"):
+        flush_pending(force=True)
+        clear_login()
+        reset_progress_state()
+        for key in ("_drafts", "_editor_init", "_editor_version", "_results"):
+            ss.pop(key, None)
         st.rerun()
